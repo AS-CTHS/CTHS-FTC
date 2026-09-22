@@ -1,19 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
-@TeleOp
-
-public class codeExample extends LinearOpMode {
+@com.qualcomm.robotcore.eventloop.opmode.Autonomous
+public class Autonomous {
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    @Override
-    public void runOpMode() {
+    public void opModeIsActive() {
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
@@ -21,10 +17,10 @@ public class codeExample extends LinearOpMode {
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-        // Wait for the game to start (driver presses PLAY)
-        waitForStart();
 
-        // run until the end of the match (driver presses STOP)
+        frontLeft.setPower(tgtPower);
+
+        /*
         double tgtPower = 0;
         while (opModeIsActive()) {
             tgtPower = -this.gamepad2.left_stick_y;
@@ -34,6 +30,6 @@ public class codeExample extends LinearOpMode {
             telemetry.addData("Status", "Running");
             telemetry.update();
 
-        }
+        }*/
     }
 }
