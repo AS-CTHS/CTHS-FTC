@@ -1,15 +1,74 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous
-public class Autonomous {
+public class Autonomous extends LinearOpMode {
     private DcMotor frontLeft;
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
 
-    public void opModeIsActive() {
+    private ElapsedTime runtime = new ElapsedTime();
+
+
+    /* Moves the robot (does not turn)
+    * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
+    * @param time is the time in seconds that it should move that direction
+    * @param power determines the final power of the motors (between 0 and 1)
+    */
+    private void drive(double direction, double time, double power) {
+        // initial definitions
+        double wheelsPairOnePower = 0.0;
+        double wheelsPairTwoPower = 0.0;
+
+        // Figure out the diagonal direction and set the power accordingly
+        if (direction <= 90) { // 0-90 deg
+            // Set the power
+            wheelsPairOnePower = 1; // front left and back right wheels
+            wheelsPairTwoPower = (45.0 - direction) / 45.0; // front right and back left wheels
+        } else if (direction <= 180) { // 90-180 deg
+            // Set the power
+            wheelsPairOnePower = (45.0 - (direction - 90)) / 45.0; // front left and back right wheels
+            wheelsPairTwoPower = -1; // front right and back left wheels
+        } else if (direction <= 270) { // 0-90 deg
+            // Set the power
+            wheelsPairOnePower = -1; // front left and back right wheels
+            wheelsPairTwoPower = (45.0 - (direction - 180)) / -45.0; // front right and back left wheels
+        } else if (direction <= 360) { // 90-180 deg
+            // Set the power
+            wheelsPairOnePower = (45.0 - (direction - 270)) / -45.0; // front left and back right wheels
+            wheelsPairTwoPower = 1; // front right and back left wheels
+        } else {
+            throw new java.lang.RuntimeException("Invalid input for direction.");
+        }
+
+        // Change the power to be relative the input power
+        wheelsPairOnePower *= power;
+        wheelsPairTwoPower *= power;
+
+        // Set the motors to start moving
+        frontLeft.setPower(wheelsPairOnePower);
+        backRight.setPower(wheelsPairOnePower);
+        frontRight.setPower(wheelsPairTwoPower);
+        backLeft.setPower(wheelsPairTwoPower);
+
+        // Keep them running for the desired amount of time
+        runtime.reset();
+        while (opModeIsActive() && runtime.seconds() < time) {}
+
+        // Stop the motors
+        frontLeft.setPower(0);
+        backRight.setPower(0);
+        frontRight.setPower(0);
+        backLeft.setPower(0);
+    }
+
+
+    @Override
+    public void runOpMode() {
         frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
@@ -18,18 +77,11 @@ public class Autonomous {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
 
-        frontLeft.setPower(tgtPower);
+        waitForStart();
 
-        /*
-        double tgtPower = 0;
-        while (opModeIsActive()) {
-            tgtPower = -this.gamepad2.left_stick_y;
-            frontLeft.setPower(tgtPower);
-            telemetry.addData("Target Power", tgtPower);
-            telemetry.addData("Motor Power", frontLeft.getPower());
-            telemetry.addData("Status", "Running");
-            telemetry.update();
-
-        }*/
+        // Drive forward for 5 seconds at max power
+        drive(0, 5.0, 1);
+        // Drive backward for 5 seconds at max power
+        drive(180, 5.0, 1);
     }
 }
