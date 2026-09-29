@@ -40,7 +40,7 @@ public class TeleOp extends LinearOpMode {
             wheelsPairOnePower = (45.0 - (direction - 270)) / -45.0; // front left and back right wheels
             wheelsPairTwoPower = 1; // front right and back left wheels
         } else {
-            throw new java.lang.RuntimeException("Invalid input for direction.");
+            throw new java.lang.RuntimeException("Invalid input for direction. Must be between 0 and 360. Got: " + direction);
         }
 
         // Change the power to be relative the input power
@@ -69,13 +69,24 @@ public class TeleOp extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         double tgtPower = 0;
+        double stickAngle = 0;
         while (opModeIsActive()) {
-            // Calculate the angle of the stick
-            double stickAngle = Math.atan(this.gamepad2.left_stick_y / this.gamepad2.left_stick_x);
+            // Calculate the angle of the stick {offset + convert_radians_to_degrees(atan(slope))}
+            stickAngle = 90 + Math.toDegrees(Math.atan(this.gamepad2.left_stick_y / this.gamepad2.left_stick_x));
+            // figure out if it's the left part of the stick, if so correct it by adding 180
+            if (this.gamepad2.left_stick_x < 0) {
+                stickAngle += 180;
+            }
+            // check if it's a number, if not, set it to 0
+            if (Double.isNaN(stickAngle)) {
+                stickAngle = 0;
+            }
+
             // Calculate the power
             tgtPower = Math.sqrt(Math.pow(this.gamepad2.left_stick_x, 2) + Math.pow(this.gamepad2.left_stick_y, 2));
             move(stickAngle, tgtPower);
             telemetry.addData("Target Power", tgtPower);
+            telemetry.addData("Target Direction", stickAngle);
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());
