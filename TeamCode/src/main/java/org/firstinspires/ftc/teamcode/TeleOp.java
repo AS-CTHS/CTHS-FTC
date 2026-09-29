@@ -77,6 +77,9 @@ public class TeleOp extends LinearOpMode {
             move(stickAngle, tgtPower);
             telemetry.addData("Target Power", tgtPower);
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
+            telemetry.addData("Front Right Motor Power", frontRight.getPower());
+            telemetry.addData("Back Left Motor Power", backLeft.getPower());
+            telemetry.addData("Back Right Motor Power", backRight.getPower());
             telemetry.addData("Status", "Running");
             telemetry.update();
 
