@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp
@@ -48,10 +49,14 @@ public class TeleOp extends LinearOpMode {
         wheelsPairTwoPower *= power;
 
         // Set the motors to start moving
-        frontLeft.setPower(wheelsPairOnePower);
-        backRight.setPower(wheelsPairOnePower);
-        frontRight.setPower(wheelsPairTwoPower);
-        backLeft.setPower(wheelsPairTwoPower);
+        //frontLeft.setPower(wheelsPairOnePower);
+        //backRight.setPower(wheelsPairOnePower);
+        //frontRight.setPower(wheelsPairTwoPower);
+        //backLeft.setPower(wheelsPairTwoPower);
+        frontLeft.setPower(wheelsPairTwoPower);
+        backRight.setPower(wheelsPairTwoPower);
+        frontRight.setPower(wheelsPairOnePower);
+        backLeft.setPower(wheelsPairOnePower);
     }
 
 
@@ -61,6 +66,7 @@ public class TeleOp extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
+        backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
