@@ -19,7 +19,7 @@ public class Autonomous extends LinearOpMode {
     * @param time is the time in seconds that it should move that direction
     * @param power determines the final power of the motors (between 0 and 1)
     */
-    private void drive(double direction, double time, double power) {
+    private void move(double direction, double time, double power) {
         // initial definitions
         double wheelsPairOnePower = 0.0;
         double wheelsPairTwoPower = 0.0;
@@ -80,8 +80,8 @@ public class Autonomous extends LinearOpMode {
         waitForStart();
 
         // Drive forward for 5 seconds at max power
-        drive(0, 5.0, 1);
+        move(0, 5.0, 1);
         // Drive backward for 5 seconds at max power
-        drive(180, 5.0, 1);
+        move(180, 5.0, 1);
     }
 }
