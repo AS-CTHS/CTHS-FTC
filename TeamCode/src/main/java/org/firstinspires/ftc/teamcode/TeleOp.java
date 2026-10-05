@@ -1,9 +1,14 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.Range;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp
 
@@ -12,12 +17,15 @@ public class TeleOp extends LinearOpMode {
     private DcMotor frontRight;
     private DcMotor backLeft;
     private DcMotor backRight;
+    private IMU imu;
 
     // weather to reverse the direction of the pair power (this can change depending on how the robot is built)
-    boolean WHEEL_PAIR_REVERSED = true;
+    static final boolean WHEEL_PAIR_REVERSED = true;
+    // the amount of direction correction
+    static final double PROPORTIONAL_GAIN = 0.03;
 
 
-    /* Moves the robot (does not turn)
+    /** Moves the robot (does not turn)
      * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
      * @param power determines the final power of the motors (between 0 and 1)
      */
@@ -57,12 +65,43 @@ public class TeleOp extends LinearOpMode {
             backRight.setPower(wheelsPairTwoPower);
             frontRight.setPower(wheelsPairOnePower);
             backLeft.setPower(wheelsPairOnePower);
-        } else{
+        } else {
             frontLeft.setPower(wheelsPairOnePower);
             backRight.setPower(wheelsPairOnePower);
             frontRight.setPower(wheelsPairTwoPower);
             backLeft.setPower(wheelsPairTwoPower);
         }
+    }
+
+
+    /**
+     * read the Robot heading directly from the IMU (in degrees)
+     */
+    public double getHeading(IMU imu) {
+        YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
+        return orientation.getYaw(AngleUnit.DEGREES);
+    }
+
+
+    /** Determines the amount of correction needed to get the robot to face the desired direction
+     * @param desiredHeading is the heading we want to face
+     */
+    public void AddSteeringCorrection(IMU imu, double desiredHeading) {
+        // Determine the heading current error
+        double headingError = desiredHeading - getHeading(imu);
+
+        // Normalize the error to be within +/- 180 degrees
+        while (headingError > 180)  headingError -= 360;
+        while (headingError <= -180) headingError += 360;
+
+        // Multiply the error by the gain to determine the required steering correction/  Limit the result to +/- 1.0
+        double correction = Range.clip(headingError * PROPORTIONAL_GAIN, -1, 1);
+
+        // Add the power to the wheels
+        frontLeft.setPower(frontLeft.getPower() + correction);
+        backLeft.setPower(backLeft.getPower() + correction);
+        frontRight.setPower(frontRight.getPower() - correction);
+        backRight.setPower(backRight.getPower() - correction);
     }
 
 
@@ -73,12 +112,28 @@ public class TeleOp extends LinearOpMode {
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
 
+        // Reverse any wheels that need to be reversed
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        // Initialize the imu
+        // define the gyro orientation
+        RevHubOrientationOnRobot.LogoFacingDirection logoDirection = RevHubOrientationOnRobot.LogoFacingDirection.UP;
+        RevHubOrientationOnRobot.UsbFacingDirection  usbDirection  = RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot orientationOnRobot = new RevHubOrientationOnRobot(logoDirection, usbDirection);
+        // initialize it with this orientation
+        imu = hardwareMap.get(IMU.class, "imu");
+        imu.initialize(new IMU.Parameters(orientationOnRobot));
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
+
+        // Reset the heading
+        imu.resetYaw();
+
+        // Set the initial desired heading
+        double desiredHeading = 0;
 
         // run until the end of the match (driver presses STOP)
         double tgtPower = 0;
@@ -98,8 +153,9 @@ public class TeleOp extends LinearOpMode {
             // Calculate the power
             tgtPower = Math.sqrt(Math.pow(this.gamepad2.left_stick_x, 2) + Math.pow(this.gamepad2.left_stick_y, 2));
             move(stickAngle, tgtPower);
-            telemetry.addData("Target Power", tgtPower);
-            telemetry.addData("Target Direction", stickAngle);
+            AddSteeringCorrection(imu, desiredHeading);
+            telemetry.addData("Direction (yaw)", getHeading(imu));
+            telemetry.addData("Test", imu.getRobotYawPitchRollAngles());
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());

@@ -58,7 +58,7 @@ public class Autonomous extends LinearOpMode {
             backRight.setPower(wheelsPairTwoPower);
             frontRight.setPower(wheelsPairOnePower);
             backLeft.setPower(wheelsPairOnePower);
-        } else{
+        } else {
             frontLeft.setPower(wheelsPairOnePower);
             backRight.setPower(wheelsPairOnePower);
             frontRight.setPower(wheelsPairTwoPower);
