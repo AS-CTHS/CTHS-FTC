@@ -13,6 +13,9 @@ public class TeleOp extends LinearOpMode {
     private DcMotor backLeft;
     private DcMotor backRight;
 
+    // weather to reverse the direction of the pair power (this can change depending on how the robot is built)
+    boolean WHEEL_PAIR_REVERSED = true;
+
 
     /* Moves the robot (does not turn)
      * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
@@ -71,8 +74,6 @@ public class TeleOp extends LinearOpMode {
         backRight = hardwareMap.get(DcMotor.class, "backRight");
 
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
-        // Weather to reverse the direction of the pair power (this can change depending on how the robot is built)
-        boolean WHEEL_PAIR_REVERSED = true;
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
