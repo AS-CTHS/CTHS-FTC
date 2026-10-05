@@ -13,6 +13,9 @@ public class Autonomous extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
+    // weather to reverse the direction of the pair power (this can change depending on how the robot is built)
+    boolean WHEEL_PAIR_REVERSED = true;
+
 
     /* Moves the robot (does not turn)
     * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
@@ -50,10 +53,17 @@ public class Autonomous extends LinearOpMode {
         wheelsPairTwoPower *= power;
 
         // Set the motors to start moving
-        frontLeft.setPower(wheelsPairOnePower);
-        backRight.setPower(wheelsPairOnePower);
-        frontRight.setPower(wheelsPairTwoPower);
-        backLeft.setPower(wheelsPairTwoPower);
+        if (WHEEL_PAIR_REVERSED) {
+            frontLeft.setPower(wheelsPairTwoPower);
+            backRight.setPower(wheelsPairTwoPower);
+            frontRight.setPower(wheelsPairOnePower);
+            backLeft.setPower(wheelsPairOnePower);
+        } else{
+            frontLeft.setPower(wheelsPairOnePower);
+            backRight.setPower(wheelsPairOnePower);
+            frontRight.setPower(wheelsPairTwoPower);
+            backLeft.setPower(wheelsPairTwoPower);
+        }
 
         // Keep them running for the desired amount of time
         runtime.reset();
