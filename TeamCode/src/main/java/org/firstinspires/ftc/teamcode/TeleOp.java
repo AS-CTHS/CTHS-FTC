@@ -49,14 +49,17 @@ public class TeleOp extends LinearOpMode {
         wheelsPairTwoPower *= power;
 
         // Set the motors to start moving
-        //frontLeft.setPower(wheelsPairOnePower);
-        //backRight.setPower(wheelsPairOnePower);
-        //frontRight.setPower(wheelsPairTwoPower);
-        //backLeft.setPower(wheelsPairTwoPower);
-        frontLeft.setPower(wheelsPairTwoPower);
-        backRight.setPower(wheelsPairTwoPower);
-        frontRight.setPower(wheelsPairOnePower);
-        backLeft.setPower(wheelsPairOnePower);
+        if (WHEEL_PAIR_REVERSED) {
+            frontLeft.setPower(wheelsPairTwoPower);
+            backRight.setPower(wheelsPairTwoPower);
+            frontRight.setPower(wheelsPairOnePower);
+            backLeft.setPower(wheelsPairOnePower);
+        } else{
+            frontLeft.setPower(wheelsPairOnePower);
+            backRight.setPower(wheelsPairOnePower);
+            frontRight.setPower(wheelsPairTwoPower);
+            backLeft.setPower(wheelsPairTwoPower);
+        }
     }
 
 
@@ -66,7 +69,10 @@ public class TeleOp extends LinearOpMode {
         frontRight = hardwareMap.get(DcMotor.class, "frontRight");
         backLeft = hardwareMap.get(DcMotor.class, "backLeft");
         backRight = hardwareMap.get(DcMotor.class, "backRight");
+
         backLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        // Weather to reverse the direction of the pair power (this can change depending on how the robot is built)
+        boolean WHEEL_PAIR_REVERSED = true;
 
         telemetry.addData("Status", "Initialized");
         telemetry.update();
