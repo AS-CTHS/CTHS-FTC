@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -19,17 +20,41 @@ public class TeleOp extends LinearOpMode {
     private DcMotor backRight;
     private IMU imu;
 
+    private ElapsedTime lastTurningTime = new ElapsedTime();
+
+    // Constants
     // weather to reverse the direction of the pair power (this can change depending on how the robot is built)
     static final boolean WHEEL_PAIR_REVERSED = true;
     // the amount of direction correction
-    static final double PROPORTIONAL_GAIN = 0.03;
+    static final double PROPORTIONAL_GAIN = 0.05;
+    // time in seconds before resetting our heading after you finish turning
+    static final double TIME_BEFORE_HEADING_RESET = 0.5;
+
+
+    /**
+     * Converts the input degrees to a positive degree (e.g. -45 to 315).
+     * @param inputDegrees is the degrees to convert
+     * @return the converted degrees
+     */
+    private double toPositiveDegrees(double inputDegrees) {
+        // Check if it's negative. If so, add 360 to convert it
+        if (inputDegrees < 0) {
+            return inputDegrees + 360;
+        } else {
+            return inputDegrees;
+        }
+    }
 
 
     /** Moves the robot (does not turn)
      * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
+     * @param referenceDirection is the direction that this assumes the robot is facing
      * @param power determines the final power of the motors (between 0 and 1)
      */
-    private void move(double direction, double power) {
+    private void move(double direction, double referenceDirection, double power) {
+        // Change the direction to the corrected target direction
+        direction = toPositiveDegrees(referenceDirection - direction);
+
         // initial definitions
         double wheelsPairOnePower = 0.0;
         double wheelsPairTwoPower = 0.0;
@@ -90,7 +115,7 @@ public class TeleOp extends LinearOpMode {
     /**
      * read the Robot heading directly from the IMU (in degrees)
      */
-    public double getHeading(IMU imu) {
+    public double getHeading() {
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         return orientation.getYaw(AngleUnit.DEGREES);
     }
@@ -99,9 +124,9 @@ public class TeleOp extends LinearOpMode {
     /** Determines the amount of correction needed to get the robot to face the desired direction
      * @param desiredHeading is the heading we want to face
      */
-    public void AddSteeringCorrection(IMU imu, double desiredHeading) {
+    public void AddSteeringCorrection(double desiredHeading) {
         // Determine the heading error
-        double headingError = desiredHeading - getHeading(imu);
+        double headingError = desiredHeading - getHeading();
 
         // Normalize the error to be within +/- 180 degrees
         while (headingError > 180)  headingError -= 360;
@@ -163,20 +188,26 @@ public class TeleOp extends LinearOpMode {
 
             // Calculate the power
             tgtPower = Math.sqrt(Math.pow(this.gamepad1.left_stick_x, 2) + Math.pow(this.gamepad1.left_stick_y, 2));
-            move(stickAngle, tgtPower);
+            // Move that direction
+            move(stickAngle, getHeading(), tgtPower);
 
             // Check if the user is wanting to turn
             if (this.gamepad1.right_stick_x != 0) {
                 // turn at the target power
                 add_rotation(this.gamepad1.right_stick_x);
                 // reset heading
-                desiredHeading = getHeading(imu);
-            } else {
+                desiredHeading = getHeading();
+
+                // reset the time since we last turned time
+                lastTurningTime.reset();
+            // Make sure enough time has passed after our last turning
+            } else if (lastTurningTime.seconds() > TIME_BEFORE_HEADING_RESET) {
                 // add steering correction
-                AddSteeringCorrection(imu, desiredHeading);
+                AddSteeringCorrection(desiredHeading);
             }
 
-            telemetry.addData("Direction (yaw)", getHeading(imu));
+            telemetry.addData("Direction (yaw)", getHeading());
+            telemetry.addData("Desired Heading", desiredHeading);
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());
