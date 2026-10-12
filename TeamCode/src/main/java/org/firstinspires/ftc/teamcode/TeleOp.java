@@ -75,6 +75,19 @@ public class TeleOp extends LinearOpMode {
 
 
     /**
+     * Adds rotation to the current power.
+     * @param power is the amount to add. Positive numbers move right, negative numbers move left.
+     */
+    private void add_rotation(double power) {
+        // Add the power to the wheels
+        frontLeft.setPower(frontLeft.getPower() + power);
+        backLeft.setPower(backLeft.getPower() + power);
+        frontRight.setPower(frontRight.getPower() - power);
+        backRight.setPower(backRight.getPower() - power);
+    }
+
+
+    /**
      * read the Robot heading directly from the IMU (in degrees)
      */
     public double getHeading(IMU imu) {
@@ -87,7 +100,7 @@ public class TeleOp extends LinearOpMode {
      * @param desiredHeading is the heading we want to face
      */
     public void AddSteeringCorrection(IMU imu, double desiredHeading) {
-        // Determine the heading current error
+        // Determine the heading error
         double headingError = desiredHeading - getHeading(imu);
 
         // Normalize the error to be within +/- 180 degrees
@@ -95,13 +108,11 @@ public class TeleOp extends LinearOpMode {
         while (headingError <= -180) headingError += 360;
 
         // Multiply the error by the gain to determine the required steering correction/  Limit the result to +/- 1.0
-        double correction = Range.clip(headingError * PROPORTIONAL_GAIN, -1, 1);
+        double correction = -1 * Range.clip(headingError * PROPORTIONAL_GAIN, -1, 1);
 
-        // Add the power to the wheels
-        frontLeft.setPower(frontLeft.getPower() + correction);
-        backLeft.setPower(backLeft.getPower() + correction);
-        frontRight.setPower(frontRight.getPower() - correction);
-        backRight.setPower(backRight.getPower() - correction);
+        telemetry.addData("Correction", correction);
+        // Add the rotation
+        add_rotation(correction);
     }
 
 
@@ -140,9 +151,9 @@ public class TeleOp extends LinearOpMode {
         double stickAngle = 0;
         while (opModeIsActive()) {
             // Calculate the angle of the stick {offset + convert_radians_to_degrees(atan(slope))}
-            stickAngle = 90 + Math.toDegrees(Math.atan(this.gamepad2.left_stick_y / this.gamepad2.left_stick_x));
+            stickAngle = 90 + Math.toDegrees(Math.atan(this.gamepad1.left_stick_y / this.gamepad1.left_stick_x));
             // figure out if it's the left part of the stick, if so correct it by adding 180
-            if (this.gamepad2.left_stick_x < 0) {
+            if (this.gamepad1.left_stick_x < 0) {
                 stickAngle += 180;
             }
             // check if it's a number, if not, set it to 0
@@ -151,11 +162,21 @@ public class TeleOp extends LinearOpMode {
             }
 
             // Calculate the power
-            tgtPower = Math.sqrt(Math.pow(this.gamepad2.left_stick_x, 2) + Math.pow(this.gamepad2.left_stick_y, 2));
+            tgtPower = Math.sqrt(Math.pow(this.gamepad1.left_stick_x, 2) + Math.pow(this.gamepad1.left_stick_y, 2));
             move(stickAngle, tgtPower);
-            AddSteeringCorrection(imu, desiredHeading);
+
+            // Check if the user is wanting to turn
+            if (this.gamepad1.right_stick_x != 0) {
+                // turn at the target power
+                add_rotation(this.gamepad1.right_stick_x);
+                // reset heading
+                desiredHeading = getHeading(imu);
+            } else {
+                // add steering correction
+                AddSteeringCorrection(imu, desiredHeading);
+            }
+
             telemetry.addData("Direction (yaw)", getHeading(imu));
-            telemetry.addData("Test", imu.getRobotYawPitchRollAngles());
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());
