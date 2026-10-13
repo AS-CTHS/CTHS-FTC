@@ -171,9 +171,11 @@ public class TeleOp extends LinearOpMode {
         // Set the initial desired heading
         double desiredHeading = 0;
 
-        // run until the end of the match (driver presses STOP)
+        // Run until the end of the match (driver presses STOP)
+        // initial variables
         double tgtPower = 0;
         double stickAngle = 0;
+        boolean waitingForSpinningEnd = false;
         while (opModeIsActive()) {
             // Calculate the angle of the stick {offset + convert_radians_to_degrees(atan(slope))}
             stickAngle = 90 + Math.toDegrees(Math.atan(this.gamepad1.left_stick_y / this.gamepad1.left_stick_x));
@@ -198,12 +200,30 @@ public class TeleOp extends LinearOpMode {
                 // reset heading
                 desiredHeading = getHeading();
 
-                // reset the time since we last turned time
+                // reset the time since we last turned
                 lastTurningTime.reset();
-            // Make sure enough time has passed after our last turning
+                // set that we are waiting to stop spinning
+                waitingForSpinningEnd = true;
+
+            // Check if we are waiting to reset the desired direction
+            } else if (waitingForSpinningEnd & lastTurningTime.seconds() > TIME_BEFORE_HEADING_RESET) {
+                // reset the desired direction
+                desiredHeading = getHeading();
+                // set that we are no longer waiting to stop spinning
+                waitingForSpinningEnd = false;
+
+            // Steering Correction
             } else if (lastTurningTime.seconds() > TIME_BEFORE_HEADING_RESET) {
                 // add steering correction
                 AddSteeringCorrection(desiredHeading);
+            }
+
+            // Check if the user wants to reset the rotation
+            if (this.gamepad1.triangleWasReleased()) {
+                // reset the heading
+                imu.resetYaw();
+                // reset the desired direction
+                desiredHeading = getHeading();
             }
 
             telemetry.addData("Direction (yaw)", getHeading());
