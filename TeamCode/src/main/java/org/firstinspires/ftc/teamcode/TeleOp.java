@@ -1,3 +1,12 @@
+/*
+* This is the main code for the Autobots team that allows for human driving during the teleop phase.
+* Controls (controller 1 only (currently)):
+* Left Stick - moving
+* Right Stick (left and right) - rotation
+* Triangle - Reset heading (used for movement)
+*/
+
+
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
@@ -169,7 +178,7 @@ public class TeleOp extends LinearOpMode {
         imu.resetYaw();
 
         // Set the initial desired heading
-        double desiredHeading = 0;
+        double desiredHeading = getHeading();
 
         // Run until the end of the match (driver presses STOP)
         // initial variables
