@@ -180,6 +180,11 @@ public class TeleOp extends LinearOpMode {
         // Set the initial desired heading
         double desiredHeading = getHeading();
 
+        // Set the initial team (WARNING: This is currently unused but can be used later for april tag alignment)
+        boolean isBlueAlliance = true;
+        // change the controller LED to match
+        this.gamepad1.setLedColor(0, 0, 255, 300000);
+
         // Run until the end of the match (driver presses STOP)
         // initial variables
         double tgtPower = 0;
@@ -235,15 +240,31 @@ public class TeleOp extends LinearOpMode {
                 desiredHeading = getHeading();
             }
 
+            // Check if the user is trying to change teams
+            if (this.gamepad1.shareWasReleased()) {
+                // check if we're on blue
+                if (isBlueAlliance) {
+                    // change to red
+                    isBlueAlliance = false;
+                    // match the controller LED
+                    this.gamepad1.setLedColor(255, 0, 0, 300000);
+                } else {
+                    // change to blue
+                    isBlueAlliance = true;
+                    // match the controller LED
+                    this.gamepad1.setLedColor(0, 0, 255, 300000);
+                }
+            }
+
             telemetry.addData("Direction (yaw)", getHeading());
             telemetry.addData("Desired Heading", desiredHeading);
+            telemetry.addData("On Blue Alliance", isBlueAlliance);
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());
             telemetry.addData("Back Right Motor Power", backRight.getPower());
             telemetry.addData("Status", "Running");
             telemetry.update();
-
         }
     }
 }
