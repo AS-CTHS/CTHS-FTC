@@ -63,7 +63,7 @@ import java.util.concurrent.TimeUnit;
 
 @TeleOp(name="Tank Drive To AprilTag", group = "Concept")
 @Disabled
-public class RobotAutoDriveToAprilTagTank extends LinearOpMode
+public class Apriltags extends LinearOpMode
 {
     // Adjust these numbers to suit your robot.
     final double DESIRED_DISTANCE = 30.0; //  this is how close the camera should get to the target (inches)
