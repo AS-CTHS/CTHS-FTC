@@ -1,3 +1,8 @@
+/*
+ * The base autonomous code to be split into routes and teams
+ */
+
+
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;

@@ -1,10 +1,10 @@
 /*
-* This is the main code for the Autobots team that allows for human driving during the teleop phase.
-* Controls (controller 1 only (currently)):
-* Left Stick - moving
-* Right Stick (left and right) - rotation
-* Triangle - Reset heading (used for movement)
-*/
+ * This is the main code for the Autobots team that allows for human driving during the teleop phase.
+ * Controls (controller 1 only (currently)):
+ * Left Stick - moving
+ * Right Stick (left and right) - rotation
+ * Triangle - Reset heading (used for movement)
+ */
 
 
 package org.firstinspires.ftc.teamcode;
