@@ -57,7 +57,9 @@ public class TeleOp extends LinearOpMode {
 
     /** Moves the robot (does not turn)
      * @param direction is the direction the robot should move (360 degrees from the front going clockwise)
-     * @param referenceDirection is the direction that this assumes the robot is facing
+     * @param referenceDirection is the direction that this assumes the robot is facing compared to
+     *                           0 degrees (e.g. if the robot is facing -45 and we want to go 45,
+     *                           it would move 90)
      * @param power determines the final power of the motors (between 0 and 1)
      */
     private void move(double direction, double referenceDirection, double power) {
