@@ -61,8 +61,7 @@ import java.util.concurrent.TimeUnit;
  *
  */
 
-@TeleOp(name="Tank Drive To AprilTag", group = "Concept")
-@Disabled
+@TeleOp(name="AprilTag Auto Align", group="Autobots")
 public class Apriltags extends LinearOpMode
 {
     // Adjust these numbers to suit your robot.
@@ -77,8 +76,10 @@ public class Apriltags extends LinearOpMode
     final double MAX_AUTO_SPEED = 0.5;   //  Clip the approach speed to this max value (adjust for your robot)
     final double MAX_AUTO_TURN  = 0.25;  //  Clip the turn speed to this max value (adjust for your robot)
 
-    private DcMotor leftDrive   = null;  //  Used to control the left drive wheel
-    private DcMotor rightDrive  = null;  //  Used to control the right drive wheel
+    private DcMotor frontLeft;
+    private DcMotor frontRight;
+    private DcMotor backLeft;
+    private DcMotor backRight;
 
     private final boolean USE_WEBCAM = true;  // Set true to use a webcam, or false for a phone camera
     private final int DESIRED_TAG_ID = -1;    // The tag you want to approach, or set to -1 for ANY tag.
@@ -96,23 +97,20 @@ public class Apriltags extends LinearOpMode
 
     @Override public void runOpMode()
     {
-        double  drive           = 0;        // Desired forward power/speed (-1 to +1) +ve is forward
-        double  turn            = 0;        // Desired turning power/speed (-1 to +1) +ve is CounterClockwise
+        double drive = 0;
+        double strafe = 0;
+        double turn = 0;
 
         // Initialize the Apriltag Detection process
         initAprilTag();
 
-        // Initialize the hardware variables. Note that the strings used here as parameters
-        // to 'get' must match the names assigned during the robot configuration.
-        // step (using the FTC Robot Controller app on the phone).
-        leftDrive  = hardwareMap.get(DcMotor.class, "left_drive");
-        rightDrive = hardwareMap.get(DcMotor.class, "right_drive");
+        frontLeft = hardwareMap.get(DcMotor.class, "frontLeft");
+        frontRight = hardwareMap.get(DcMotor.class, "frontRight");
+        backLeft = hardwareMap.get(DcMotor.class, "backLeft");
+        backRight = hardwareMap.get(DcMotor.class, "backRight");
 
-        // To drive forward, most robots need the motor on one side to be reversed because the axles point in opposite directions.
-        // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels.  Single Gear Reduction or 90 Deg drives may require direction flips
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        // Match the motor directions from TeleOp.java
+        backLeft.setDirection(DcMotor.Direction.REVERSE);
 
         if (USE_WEBCAM)
             setManualExposure(6, 250);  // Use low exposure time to reduce motion blur
@@ -184,26 +182,53 @@ public class Apriltags extends LinearOpMode
             // If Left Bumper is being pressed, AND we have found the desired target, Drive to target Automatically .
             if (gamepad1.left_bumper && targetFound) {
 
-                // Determine heading and range error so we can use them to control the robot automatically.
-                double  rangeError      = targetRange - DESIRED_DISTANCE;
-                double  headingError    = targetBearing;
+                // Calculate AprilTag errors
+                double rangeError = targetRange - DESIRED_DISTANCE;
+                double headingError = targetBearing;
 
-                // Use the speed and turn "gains" to calculate how we want the robot to move.  Clip it to the maximum
-                drive = Range.clip(rangeError * SPEED_GAIN, -MAX_AUTO_SPEED, MAX_AUTO_SPEED);
-                turn  = Range.clip(headingError * TURN_GAIN, -MAX_AUTO_TURN, MAX_AUTO_TURN) ;
+                // Calculate automatic movement
+                drive = Range.clip(
+                        rangeError * SPEED_GAIN,
+                        -MAX_AUTO_SPEED,
+                        MAX_AUTO_SPEED
+                );
 
-                telemetry.addData("Auto","Drive %5.2f, Turn %5.2f", drive, turn);
+                // Positive bearing = turn toward the right
+                turn = Range.clip(
+                        headingError * TURN_GAIN,
+                        -MAX_AUTO_TURN,
+                        MAX_AUTO_TURN
+                );
+
+                // No automatic strafing yet
+                strafe = 0;
+
+                telemetry.addData("Auto", "Drive %.2f, Turn %.2f",
+                        drive, turn);
+
             } else {
-                // drive using manual POV Joystick mode.
-                drive = -gamepad1.left_stick_y  / 2.0;  // Reduce drive rate to 50%.
-                turn  = -gamepad1.right_stick_x / 4.0;  // Reduce turn rate to 25%.
-                telemetry.addData("Manual","Drive %5.2f, Turn %5.2f", drive, turn);
+
+                // Manual robot-centric driving
+                drive = -gamepad1.left_stick_y / 2.0;
+                strafe = gamepad1.left_stick_x / 2.0;
+                turn = gamepad1.right_stick_x / 4.0;
+
+                telemetry.addData("Manual",
+                        "Drive %.2f, Strafe %.2f, Turn %.2f",
+                        drive, strafe, turn);
             }
             telemetry.update();
 
             // Apply desired axes motions to the drivetrain.
-            moveRobot(drive, turn);
+            moveRobot(drive, strafe, turn);
             sleep(10);
+        }
+        // Stop all movement
+        moveRobot(0, 0, 0);
+
+        // Release camera resources
+        if (visionPortal != null) {
+            visionPortal.close();
         }
     }
 
@@ -212,21 +237,32 @@ public class Apriltags extends LinearOpMode
      * Positive X is forward
      * Positive Yaw is counter-clockwise
      */
-    public void moveRobot(double x, double yaw) {
-        // Calculate left and right wheel powers.
-        double leftPower    = x - yaw;
-        double rightPower   = x + yaw;
+    public void moveRobot(double drive, double strafe, double turn) {
 
-        // Normalize wheel powers to be less than 1.0
-        double max = Math.max(Math.abs(leftPower), Math.abs(rightPower));
-        if (max >1.0) {
-            leftPower /= max;
-            rightPower /= max;
+        // Calculate power for all four mecanum wheels
+        double flPower = drive - strafe + turn;
+        double frPower = drive + strafe - turn;
+        double blPower = drive + strafe + turn;
+        double brPower = drive - strafe - turn;
+
+        // Normalize motor powers so none exceed 1.0
+        double max = Math.max(
+                Math.max(Math.abs(flPower), Math.abs(frPower)),
+                Math.max(Math.abs(blPower), Math.abs(brPower))
+        );
+
+        if (max > 1.0) {
+            flPower /= max;
+            frPower /= max;
+            blPower /= max;
+            brPower /= max;
         }
 
-        // Send powers to the wheels.
-        leftDrive.setPower(leftPower);
-        rightDrive.setPower(rightPower);
+        // Apply power to the motors
+        frontLeft.setPower(flPower);
+        frontRight.setPower(frPower);
+        backLeft.setPower(blPower);
+        backRight.setPower(brPower);
     }
 
     /**
