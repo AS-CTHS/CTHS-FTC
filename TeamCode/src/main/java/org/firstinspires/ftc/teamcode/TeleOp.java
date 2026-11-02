@@ -20,8 +20,7 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp
-
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "TeleOp", group = "TeleOp")
 public class TeleOp extends LinearOpMode {
     private DcMotor frontLeft;
     private DcMotor frontRight;
@@ -111,7 +110,8 @@ public class TeleOp extends LinearOpMode {
 
 
     /**
-     * Adds rotation to the current power.
+     * Adds rotation to the current power. If you want to rotate to a specific degree, change
+     * desiredHeading.
      * @param power is the amount to add. Positive numbers move right, negative numbers move left.
      */
     private void add_rotation(double power) {
