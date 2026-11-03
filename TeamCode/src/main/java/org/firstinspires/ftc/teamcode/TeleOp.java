@@ -40,17 +40,13 @@ public class TeleOp extends LinearOpMode {
 
 
     /**
-     * Converts the input degrees to a positive degree (e.g. -45 to 315).
+     * Converts the input degrees to the same thing between [0, 360).
      * @param inputDegrees is the degrees to convert
      * @return the converted degrees
      */
-    private double toPositiveDegrees(double inputDegrees) {
-        // Check if it's negative. If so, add 360 to convert it
-        if (inputDegrees < 0) {
-            return inputDegrees + 360;
-        } else {
-            return inputDegrees;
-        }
+    private double convertCoterminalDegrees(double inputDegrees) {
+        // Literally just a simple modules (remainder) statement
+        return Math.abs(inputDegrees % 360);
     }
 
 
@@ -63,7 +59,7 @@ public class TeleOp extends LinearOpMode {
      */
     private void move(double direction, double referenceDirection, double power) {
         // Change the direction to the corrected target direction
-        direction = toPositiveDegrees(referenceDirection - direction);
+        direction = convertCoterminalDegrees(referenceDirection - direction);
 
         // initial definitions
         double wheelsPairOnePower = 0.0;
