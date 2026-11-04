@@ -124,7 +124,6 @@ public class Apriltags extends LinearOpMode
         while (opModeIsActive())
         {
             targetFound = false;
-
             // Step through the list of detected tags and look for a matching tag
             List<AprilTagDetection> currentDetections = aprilTag.getDetections();
             for (AprilTagDetection detection : currentDetections) {

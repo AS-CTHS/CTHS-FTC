@@ -1,9 +1,11 @@
 /*
  * This is the main code for the Autobots team that allows for human driving during the teleop phase.
  * Controls (controller 1 only (currently)):
- * Left Stick - moving
+ * Left Stick - movement
  * Right Stick (left and right) - rotation
  * Triangle - Reset heading (used for movement)
+ * Share - Change teams
+ * Right Trigger - Aim at the hive (not fully implemented)
  */
 
 
@@ -17,26 +19,102 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagClusterDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name = "TeleOp", group = "TeleOp")
 public class TeleOp extends LinearOpMode {
-    private DcMotor frontLeft;
-    private DcMotor frontRight;
-    private DcMotor backLeft;
-    private DcMotor backRight;
-    private IMU imu;
+    // Initial definition
+    private DcMotor frontLeft; // Front left wheel
+    private DcMotor frontRight; // Front right wheel
+    private DcMotor backLeft; // Back left wheel
+    private DcMotor backRight; // Back right wheel
+    private IMU imu; // Rotation
+    private VisionPortal visionPortal; // Vision processing
+    private AprilTagProcessor aprilTag; // April tag processing from the vision portal
 
     private ElapsedTime lastTurningTime = new ElapsedTime();
 
     // Constants
+    // the config webcam name
+    static final String WEBCAM_NAME = "webcam";
     // weather to reverse the direction of the pair power (this can change depending on how the robot is built)
     static final boolean WHEEL_PAIR_REVERSED = true;
     // the amount of direction correction
     static final double PROPORTIONAL_GAIN = 0.05;
     // time in seconds before resetting our heading after you finish turning
     static final double TIME_BEFORE_HEADING_RESET = 0.5;
+
+
+    /**
+     * Initialize the AprilTag processor
+     */
+    private void initAprilTag() {
+        // Create the AprilTag processor by using a builder.
+        aprilTag = new AprilTagProcessor.Builder().build();
+
+        // Adjust Image Decimation to trade-off detection-range for detection-rate.
+        aprilTag.setDecimation(2);
+
+        // Create the vision portal by using a builder.
+        visionPortal = new VisionPortal.Builder()
+                .setCamera(hardwareMap.get(WebcamName.class, WEBCAM_NAME))
+                .addProcessor(aprilTag)
+                .build();
+    }
+
+
+    /**
+     * Manually set the camera gain and exposure.
+     * This can only be called AFTER calling initAprilTag(), and only works for Webcams;
+    */
+    private void setManualExposure(int exposureMS, int gain) {
+        // Wait for the camera to be open, then use the controls
+
+        if (visionPortal == null) {
+            return;
+        }
+
+        // Make sure camera is streaming before we try to set the exposure controls
+        if (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+            telemetry.addData("Camera", "Waiting");
+            telemetry.update();
+            while (!isStopRequested() && (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING)) {
+                sleep(20);
+            }
+            telemetry.addData("Camera", "Ready");
+            telemetry.update();
+        }
+
+        // Set camera controls unless we are stopping.
+        if (!isStopRequested())
+        {
+            ExposureControl exposureControl = visionPortal.getCameraControl(ExposureControl.class);
+            if (exposureControl.getMode() != ExposureControl.Mode.Manual) {
+                exposureControl.setMode(ExposureControl.Mode.Manual);
+                sleep(50);
+            }
+            exposureControl.setExposure((long)exposureMS, TimeUnit.MILLISECONDS);
+            sleep(20);
+            GainControl gainControl = visionPortal.getCameraControl(GainControl.class);
+            gainControl.setGain(gain);
+            sleep(20);
+            telemetry.addData("Camera", "Ready");
+            telemetry.update();
+        }
+    }
 
 
     /**
@@ -128,10 +206,11 @@ public class TeleOp extends LinearOpMode {
     }
 
 
-    /** Determines the amount of correction needed to get the robot to face the desired direction
+    /**
+     * Determines the amount of correction needed to get the robot to face the desired direction
      * @param desiredHeading is the heading we want to face
      */
-    public void AddSteeringCorrection(double desiredHeading) {
+    public void addSteeringCorrection(double desiredHeading) {
         // Determine the heading error
         double headingError = desiredHeading - getHeading();
 
@@ -145,6 +224,32 @@ public class TeleOp extends LinearOpMode {
         telemetry.addData("Correction", correction);
         // Add the rotation
         add_rotation(correction);
+    }
+
+
+    /**
+     * Finds an april tag cluster
+     * @param clusterName is the name of the cluster to be found
+     * @return the cluster
+     */
+    public AprilTagClusterDetection findAprilTagCluster(String clusterName) {
+        // Step through the list of detected tags and look for a matching tag
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        for (AprilTagDetection detection : currentDetections) {
+            // Check if it's a cluster
+            if (detection instanceof AprilTagClusterDetection) {
+                // Get the cluster
+                AprilTagClusterDetection clusterDet = (AprilTagClusterDetection) detection;
+
+                // Check if it's the cluster we're looking for; if so, return it
+                if (clusterDet.metadata.shortName.equals(clusterName) ) {
+                    return clusterDet;
+                }
+            }
+        }
+
+        // None were detected, so we return null
+        return null;
     }
 
 
@@ -167,6 +272,10 @@ public class TeleOp extends LinearOpMode {
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(orientationOnRobot));
 
+        // Initialize the april tag processing
+        initAprilTag();
+        setManualExposure(6, 250);  // Use low exposure time to reduce motion blur
+
         telemetry.addData("Status", "Initialized");
         telemetry.update();
         // Wait for the game to start (driver presses PLAY)
@@ -178,10 +287,10 @@ public class TeleOp extends LinearOpMode {
         // Set the initial desired heading
         double desiredHeading = getHeading();
 
-        // Set the initial team (WARNING: This is currently unused but can be used later for april tag alignment)
-        boolean isBlueAlliance = true;
+        // Set the initial team
+        boolean onRedAlliance = true;
         // change the controller LED to match
-        this.gamepad1.setLedColor(0, 0, 255, 300000);
+        this.gamepad1.setLedColor(255, 0, 0, 300000);
 
         // Run until the end of the match (driver presses STOP)
         // initial variables
@@ -205,6 +314,28 @@ public class TeleOp extends LinearOpMode {
             // Move that direction
             move(stickAngle, getHeading(), tgtPower);
 
+            // Check if the user wants to aim to fire a ball
+            if (this.gamepad1.right_bumper) {
+                // initial definitions
+                String tagClusterName1;
+                String tagClusterName2;
+                AprilTagClusterDetection tagCluster;
+
+                // Check which team we're on
+                if (onRedAlliance) {
+                    tagClusterName1 = "RED SCORING";
+                    tagClusterName2 = "RED AUDIENCE";
+                } else {
+                    tagClusterName1 = "BLUE SCORING";
+                    tagClusterName2 = "BLUE AUDIENCE";
+                }
+
+                tagCluster = findAprilTagCluster(tagClusterName1);
+                if (tagCluster != null) {
+                    telemetry.addData("cluster", tagCluster.ftcPose.z);
+                }
+            }
+            
             // Check if the user is wanting to turn
             if (this.gamepad1.right_stick_x != 0) {
                 // turn at the target power
@@ -227,7 +358,7 @@ public class TeleOp extends LinearOpMode {
             // Steering Correction
             } else if (lastTurningTime.seconds() > TIME_BEFORE_HEADING_RESET) {
                 // add steering correction
-                AddSteeringCorrection(desiredHeading);
+                addSteeringCorrection(desiredHeading);
             }
 
             // Check if the user wants to reset the rotation
@@ -240,23 +371,23 @@ public class TeleOp extends LinearOpMode {
 
             // Check if the user is trying to change teams
             if (this.gamepad1.shareWasReleased()) {
-                // check if we're on blue
-                if (isBlueAlliance) {
-                    // change to red
-                    isBlueAlliance = false;
-                    // match the controller LED
-                    this.gamepad1.setLedColor(255, 0, 0, 300000);
-                } else {
+                // check if we're on red
+                if (onRedAlliance) {
                     // change to blue
-                    isBlueAlliance = true;
+                    onRedAlliance = false;
                     // match the controller LED
                     this.gamepad1.setLedColor(0, 0, 255, 300000);
+                } else {
+                    // change to red
+                    onRedAlliance = true;
+                    // match the controller LED
+                    this.gamepad1.setLedColor(255, 0, 0, 300000);
                 }
             }
 
             telemetry.addData("Direction (yaw)", getHeading());
             telemetry.addData("Desired Heading", desiredHeading);
-            telemetry.addData("On Blue Alliance", isBlueAlliance);
+            telemetry.addData("On Red Alliance", onRedAlliance);
             telemetry.addData("Front Left Motor Power", frontLeft.getPower());
             telemetry.addData("Front Right Motor Power", frontRight.getPower());
             telemetry.addData("Back Left Motor Power", backLeft.getPower());

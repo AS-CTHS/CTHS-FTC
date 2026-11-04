@@ -15,15 +15,19 @@ import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 @com.qualcomm.robotcore.eventloop.opmode.Autonomous
 public class autonomousBase extends LinearOpMode {
     // Initial definition
-    private DcMotor frontLeft;
-    private DcMotor frontRight;
-    private DcMotor backLeft;
-    private DcMotor backRight;
-    private IMU imu;
+    private DcMotor frontLeft; // Front left wheel
+    private DcMotor frontRight; // Front right wheel
+    private DcMotor backLeft; // Back left wheel
+    private DcMotor backRight; // Back right wheel
+    private IMU imu; // Rotation
+    private VisionPortal visionPortal; // Vision processing
+    private AprilTagProcessor aprilTag; // April tag processing from the vision portal
 
     private ElapsedTime runtime = new ElapsedTime();
 
