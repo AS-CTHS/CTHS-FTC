@@ -57,6 +57,11 @@ public class TeleOp extends LinearOpMode {
     // time in seconds before resetting our heading after you finish turning
     static final double TIME_BEFORE_HEADING_RESET = 0.5;
 
+    // the minimum distance (in inches?) of elevation for a cell's april tag cluster to be considered in the up position
+    static final int MINIMUM_CELL_ELEVATION = 20;
+    // the desired distance (in inches? same as above) we need to be away from the cell's april tag cluster in order to fire
+    static final int DESIRED_SHOOTING_DISTANCE = 20;
+
 
     /**
      * Initialize the AprilTag processor
@@ -321,7 +326,7 @@ public class TeleOp extends LinearOpMode {
                 String tagClusterName2;
                 AprilTagClusterDetection tagCluster;
 
-                // Check which team we're on
+                // Check which team we're on and set the appropriate cluster names
                 if (onRedAlliance) {
                     tagClusterName1 = "RED SCORING";
                     tagClusterName2 = "RED AUDIENCE";
@@ -330,9 +335,21 @@ public class TeleOp extends LinearOpMode {
                     tagClusterName2 = "BLUE AUDIENCE";
                 }
 
+                // Look for the first cluster
                 tagCluster = findAprilTagCluster(tagClusterName1);
+                // check if the cell is not found and in the up position
+                if (!(tagCluster != null && tagCluster.ftcPose.elevation >= MINIMUM_CELL_ELEVATION)) {
+                    // Set the other cluster
+                    tagCluster = findAprilTagCluster(tagClusterName2);
+                }
+                // Make sure the april tag cluster is detected
                 if (tagCluster != null) {
-                    telemetry.addData("cluster", tagCluster.ftcPose.z);
+                    telemetry.addData("Going To Cluster", tagCluster.metadata.name);
+                    // Rotate to face the same direction as the april tag
+                    desiredHeading = getHeading() - tagCluster.ftcPose.bearing;
+
+                    // Move towards the point that's the desired distance away
+                    // calculate the direction
                 }
             }
             
