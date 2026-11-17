@@ -62,7 +62,7 @@ public class TeleOp extends LinearOpMode {
     // the desired distance (in inches? same as above) we need to be away from the cell's april tag cluster in order to fire
     static final int DESIRED_SHOOTING_DISTANCE = 20;
     // math pi (tasty)
-    static final double PI = 3.14;
+    static final double PI = 3.141592653489792328;
 
 
     /**
