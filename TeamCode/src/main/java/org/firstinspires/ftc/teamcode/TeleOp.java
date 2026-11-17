@@ -58,9 +58,11 @@ public class TeleOp extends LinearOpMode {
     static final double TIME_BEFORE_HEADING_RESET = 0.5;
 
     // the minimum distance (in inches?) of elevation for a cell's april tag cluster to be considered in the up position
-    static final int MINIMUM_CELL_ELEVATION = 20;
+    static final int MINIMUM_CELL_ELEVATION = -300;
     // the desired distance (in inches? same as above) we need to be away from the cell's april tag cluster in order to fire
     static final int DESIRED_SHOOTING_DISTANCE = 20;
+    // math pi (tasty)
+    static final double PI = 3.14;
 
 
     /**
@@ -349,7 +351,26 @@ public class TeleOp extends LinearOpMode {
                     desiredHeading = getHeading() - tagCluster.ftcPose.bearing;
 
                     // Move towards the point that's the desired distance away
-                    // calculate the direction
+                    // calculate the direction (it's a ton of trigonometry) (the variables names mean nothing outside the ftcPose things, just go with it)
+                    double yaw = Math.toRadians(tagCluster.ftcPose.yaw);
+                    double range = Math.toRadians(tagCluster.ftcPose.range);
+                    double bearing = Math.toRadians(tagCluster.ftcPose.bearing);
+
+                    double a = (range * Math.sin(bearing)) / Math.sin(PI - yaw);
+                    double b = DESIRED_SHOOTING_DISTANCE - a;
+                    double c = (range * Math.sin(yaw - bearing)) / Math.sin(180 - yaw);
+                    double d = Math.sqrt(Math.pow(c, 2) + Math.pow(b, 2) - 2 * c * b * Math.cos(yaw));
+                    double e = Math.acos((Math.pow(b, 2) - Math.pow(d, 2) - Math.pow(c, 2)) / (-2 * d * c));
+
+                    double direction = Math.toDegrees(e);
+                    // reverse it if it's on the other side
+                    if (tagCluster.ftcPose.yaw < 0) {
+                        direction = 360 - direction;
+                    }
+
+                    telemetry.addData("test", direction);
+                    // Move in that direction
+                    move(direction, 0, 1);
                 }
             }
             
